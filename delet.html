@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CoachBetter – Department Membership Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+
+  <body class="min-h-screen bg-slate-100">
+    <!-- Page (demo launcher) -->
+    <div class="mx-auto max-w-4xl px-6 py-10">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div class="text-sm text-slate-500">Prototype</div>
+          <h1 class="text-2xl font-semibold text-slate-900">Department memberships UI</h1>
+          <p class="mt-1 text-sm text-slate-600">
+            One reusable UI for wizard + standalone, with add / edit / end / delete.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+            <span class="text-slate-600">Mode</span>
+            <select id="modeSelect" class="bg-transparent font-medium text-slate-900 outline-none">
+              <option value="wizard">Wizard</option>
+              <option value="standalone">Standalone</option>
+            </select>
+          </label>
+
+          <button
+            id="openModalBtn"
+            class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+          >
+            Open UI
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-10 grid gap-4 md:grid-cols-2">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5">
+          <div class="text-sm font-semibold text-slate-900">What this prototype shows</div>
+          <ul class="mt-3 list-inside list-disc text-sm text-slate-600">
+            <li>Same inner content used for wizard & standalone shells</li>
+            <li>Cards for memberships (Active / Planned / Ended)</li>
+            <li>Add/Edit modal with date fields</li>
+            <li>End confirmation modal (sets end date)</li>
+            <li>Delete confirmation modal (danger)</li>
+            <li>Ended memberships collapsible section</li>
+          </ul>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-5">
+          <div class="text-sm font-semibold text-slate-900">Quick interactions</div>
+          <ul class="mt-3 list-inside list-disc text-sm text-slate-600">
+            <li>Click a card to expand details</li>
+            <li>Use ✏️ Edit, ⋯ More → End / Delete</li>
+            <li>+ Add department opens the add modal</li>
+            <li>Switch mode to see wizard footer vs standalone footer</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backdrop + Modal Shell -->
+    <div id="backdrop" class="fixed inset-0 z-40 hidden bg-black/30"></div>
+
+    <div
+      id="mainModal"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-6"
+      aria-modal="true"
+      role="dialog"
+    >
+      <div class="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-xl">
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+          <div class="flex items-center gap-3">
+            <div class="text-lg font-semibold text-slate-900">coachbetter</div>
+          </div>
+          <button
+            id="closeMainModal"
+            class="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="max-h-[75vh] overflow-auto px-6 py-5">
+          <!-- Wizard header row -->
+          <div id="wizardTop" class="mb-5 hidden">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-sm text-slate-500">Step 2 of 4</div>
+                <h2 class="text-xl font-semibold text-slate-900">Beiträge und Abteilungen (optional)</h2>
+              </div>
+              <div class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                Onboarding
+              </div>
+            </div>
+          </div>
+
+          <!-- Standalone header row -->
+          <div id="standaloneTop" class="mb-5 hidden">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-sm text-slate-500">Profile</div>
+                <h2 class="text-xl font-semibold text-slate-900">Department memberships</h2>
+              </div>
+              <div class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                Manage
+              </div>
+            </div>
+          </div>
+
+          <!-- Person header -->
+          <div class="rounded-2xl bg-slate-50 p-4">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-600">
+                👤
+              </div>
+              <div>
+                <div class="font-semibold text-slate-900">Claudia testt</div>
+                <div class="text-sm text-slate-600">claudia@pixel-plus.ch</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Departments section -->
+          <div class="mt-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold text-slate-900">Abteilungszuweisung</div>
+                <div class="mt-1 text-sm text-slate-600">
+                  Fügen Sie der Person Abteilungen hinzu, bearbeiten Sie Daten oder beenden Sie Mitgliedschaften.
+                </div>
+              </div>
+
+              <button
+                id="addDeptBtn"
+                class="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+              >
+                + Abteilung hinzufügen
+              </button>
+            </div>
+
+            <!-- Active & planned -->
+            <div class="mt-4 space-y-3" id="activeList"></div>
+
+            <!-- Ended accordion -->
+            <div class="mt-5 rounded-2xl border border-slate-200 bg-white">
+              <button
+                id="toggleEnded"
+                class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold text-slate-900">Beendete Abteilungen</span>
+                  <span id="endedCount" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700"
+                    >0</span
+                  >
+                </div>
+                <span id="endedChevron" class="text-slate-500">▾</span>
+              </button>
+              <div id="endedListWrap" class="hidden border-t border-slate-200 px-4 py-4">
+                <div class="space-y-3" id="endedList"></div>
+              </div>
+            </div>
+
+            <div class="mt-6 text-xs text-slate-500">
+              Hinweis: <span class="font-semibold">Löschen</span> ist nur für Fehler (z.B. Duplikate). Normalerweise:
+              <span class="font-semibold">Beenden</span>.
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer (wizard vs standalone) -->
+        <div class="border-t border-slate-100 px-6 py-4">
+          <div id="wizardFooter" class="hidden items-center justify-between gap-3 sm:flex">
+            <button
+              class="w-32 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+            >
+              Zurück
+            </button>
+            <button
+              class="w-40 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              Weiter
+            </button>
+          </div>
+
+          <div id="standaloneFooter" class="hidden items-center justify-between gap-3 sm:flex">
+            <button
+              id="standaloneClose"
+              class="w-32 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+            >
+              Close
+            </button>
+            <button
+              class="w-40 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              Save
+            </button>
+          </div>
+
+          <!-- Mobile footer fallback -->
+          <div class="flex items-center justify-between gap-3 sm:hidden">
+            <button
+              id="mobileLeft"
+              class="w-32 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+            >
+              Back
+            </button>
+            <button
+              id="mobileRight"
+              class="w-40 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="editBackdrop" class="fixed inset-0 z-50 hidden bg-black/30"></div>
+    <div id="editModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-6" role="dialog">
+      <div class="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-xl">
+        <div class="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+          <div>
+            <div class="text-lg font-semibold text-slate-900" id="editTitle">Abteilung hinzufügen</div>
+            <div class="mt-1 text-sm text-slate-600" id="editSubtitle">
+              Wählen Sie eine Abteilung und geben Sie Daten an.
+            </div>
+          </div>
+          <button id="closeEditModal" class="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
+            ✕
+          </button>
+        </div>
+
+        <div class="px-6 py-5">
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm font-semibold text-slate-900">Abteilung *</label>
+              <select
+                id="deptSelect"
+                class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+              >
+                <option value="">Abteilung auswählen…</option>
+                <option>Fussball</option>
+                <option>Tennis</option>
+                <option>Field hockey</option>
+                <option>Running</option>
+                <option>Horse riding</option>
+                <option>Department Test</option>
+                <option>aaaaaaaaaa</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label class="text-sm font-semibold text-slate-900">Startdatum *</label>
+                <input
+                  id="startInput"
+                  type="date"
+                  class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label class="text-sm font-semibold text-slate-900">Enddatum (optional)</label>
+                <input
+                  id="endInput"
+                  type="date"
+                  class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-sm font-semibold text-slate-900">Notiz (optional)</label>
+              <textarea
+                id="noteInput"
+                rows="3"
+                class="mt-2 w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                placeholder="Optionaler Kommentar…"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 px-6 py-4">
+          <div class="flex items-center justify-between gap-3">
+            <button
+              id="cancelEdit"
+              class="w-32 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+            >
+              Abbrechen
+            </button>
+            <button
+              id="saveEdit"
+              class="w-40 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:bg-slate-300"
+              disabled
+            >
+              Hinzufügen
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Modal (End / Delete) -->
+    <div id="confirmBackdrop" class="fixed inset-0 z-50 hidden bg-black/30"></div>
+    <div id="confirmModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-6" role="dialog">
+      <div class="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-xl">
+        <div class="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+          <div>
+            <div class="text-lg font-semibold text-slate-900" id="confirmTitle">Confirm</div>
+            <div class="mt-1 text-sm text-slate-600" id="confirmText">Text</div>
+          </div>
+          <button
+            id="closeConfirmModal"
+            class="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="px-6 py-5" id="confirmBody"></div>
+
+        <div class="border-t border-slate-100 px-6 py-4">
+          <div class="flex items-center justify-between gap-3">
+            <button
+              id="confirmCancel"
+              class="w-32 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              id="confirmOk"
+              class="w-40 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Small toast -->
+    <div
+      id="toast"
+      class="fixed bottom-4 left-1/2 z-[60] hidden -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg"
+    >
+      Saved
+    </div>
+
+    <script>
+      /*********************
+       * Demo data + helpers
+       *********************/
+      const todayISO = () => {
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      };
+
+      const parseISO = (s) => (s ? new Date(s + "T00:00:00") : null);
+      const fmt = (iso) => {
+        if (!iso) return "Offen";
+        const d = parseISO(iso);
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+      };
+
+      const statusOf = (m) => {
+        const t = parseISO(todayISO());
+        const start = parseISO(m.start);
+        const end = parseISO(m.end);
+        if (end && end < t) return "ended";
+        if (start && start > t) return "planned";
+        return "active";
+      };
+
+      const statusLabel = (m) => {
+        const st = statusOf(m);
+        if (st === "active") return { text: "Active", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" };
+        if (st === "planned") return { text: `Starts ${fmt(m.start)}`, cls: "bg-sky-50 text-sky-700 ring-sky-200" };
+        return { text: `Ended ${fmt(m.end)}`, cls: "bg-slate-100 text-slate-700 ring-slate-200" };
+      };
+
+      let memberships = [
+        { id: "m1", dept: "aaaaaaaaaa", start: "2026-02-11", end: null, note: "" },
+        { id: "m2", dept: "Department Test", start: "2026-02-11", end: null, note: "Volunteer coach contact" },
+        { id: "m3", dept: "Fussball", start: "2024-01-01", end: "2025-12-31", note: "" },
+      ];
+
+      let expanded = new Set(["m1"]); // which cards are expanded
+
+      // UI elements
+      const modeSelect = document.getElementById("modeSelect");
+      const openModalBtn = document.getElementById("openModalBtn");
+      const mainModal = document.getElementById("mainModal");
+      const backdrop = document.getElementById("backdrop");
+      const closeMainModal = document.getElementById("closeMainModal");
+
+      const wizardTop = document.getElementById("wizardTop");
+      const standaloneTop = document.getElementById("standaloneTop");
+      const wizardFooter = document.getElementById("wizardFooter");
+      const standaloneFooter = document.getElementById("standaloneFooter");
+      const standaloneClose = document.getElementById("standaloneClose");
+      const mobileLeft = document.getElementById("mobileLeft");
+      const mobileRight = document.getElementById("mobileRight");
+
+      const activeList = document.getElementById("activeList");
+      const endedList = document.getElementById("endedList");
+      const endedCount = document.getElementById("endedCount");
+      const toggleEnded = document.getElementById("toggleEnded");
+      const endedListWrap = document.getElementById("endedListWrap");
+      const endedChevron = document.getElementById("endedChevron");
+
+      // Add/Edit modal
+      const editBackdrop = document.getElementById("editBackdrop");
+      const editModal = document.getElementById("editModal");
+      const closeEditModal = document.getElementById("closeEditModal");
+      const addDeptBtn = document.getElementById("addDeptBtn");
+      const editTitle = document.getElementById("editTitle");
+      const editSubtitle = document.getElementById("editSubtitle");
+      const deptSelect = document.getElementById("deptSelect");
+      const startInput = document.getElementById("startInput");
+      const endInput = document.getElementById("endInput");
+      const noteInput = document.getElementById("noteInput");
+      const cancelEdit = document.getElementById("cancelEdit");
+      const saveEdit = document.getElementById("saveEdit");
+
+      // Confirm modal
+      const confirmBackdrop = document.getElementById("confirmBackdrop");
+      const confirmModal = document.getElementById("confirmModal");
+      const closeConfirmModal = document.getElementById("closeConfirmModal");
+      const confirmTitle = document.getElementById("confirmTitle");
+      const confirmText = document.getElementById("confirmText");
+      const confirmBody = document.getElementById("confirmBody");
+      const confirmCancel = document.getElementById("confirmCancel");
+      const confirmOk = document.getElementById("confirmOk");
+
+      const toast = document.getElementById("toast");
+
+      // state for edit / confirm
+      let editingId = null; // null => add
+      let confirmAction = null;
+      let confirmTargetId = null;
+
+      const showToast = (msg) => {
+        toast.textContent = msg;
+        toast.classList.remove("hidden");
+        setTimeout(() => toast.classList.add("hidden"), 1200);
+      };
+
+      const openMain = () => {
+        backdrop.classList.remove("hidden");
+        mainModal.classList.remove("hidden");
+        mainModal.classList.add("flex");
+        applyMode();
+        render();
+      };
+
+      const closeMain = () => {
+        mainModal.classList.add("hidden");
+        mainModal.classList.remove("flex");
+        backdrop.classList.add("hidden");
+      };
+
+      const applyMode = () => {
+        const mode = modeSelect.value;
+
+        wizardTop.classList.toggle("hidden", mode !== "wizard");
+        standaloneTop.classList.toggle("hidden", mode !== "standalone");
+
+        wizardFooter.classList.toggle("hidden", mode !== "wizard");
+        standaloneFooter.classList.toggle("hidden", mode !== "standalone");
+
+        // mobile labels
+        if (mode === "wizard") {
+          mobileLeft.textContent = "Zurück";
+          mobileRight.textContent = "Weiter";
+        } else {
+          mobileLeft.textContent = "Close";
+          mobileRight.textContent = "Save";
+        }
+      };
+
+      const openEdit = ({ id = null } = {}) => {
+        editingId = id;
+
+        editBackdrop.classList.remove("hidden");
+        editModal.classList.remove("hidden");
+        editModal.classList.add("flex");
+
+        // defaults
+        deptSelect.value = "";
+        startInput.value = todayISO();
+        endInput.value = "";
+        noteInput.value = "";
+
+        if (!id) {
+          editTitle.textContent = "Abteilung hinzufügen";
+          editSubtitle.textContent = "Wählen Sie eine Abteilung und geben Sie Daten an.";
+          saveEdit.textContent = "Hinzufügen";
+        } else {
+          const m = memberships.find((x) => x.id === id);
+          editTitle.textContent = "Abteilung bearbeiten";
+          editSubtitle.textContent = "Passen Sie Daten an oder setzen Sie ein Enddatum.";
+          saveEdit.textContent = "Speichern";
+
+          deptSelect.value = m.dept;
+          startInput.value = m.start || todayISO();
+          endInput.value = m.end || "";
+          noteInput.value = m.note || "";
+        }
+
+        validateEdit();
+      };
+
+      const closeEdit = () => {
+        editModal.classList.add("hidden");
+        editModal.classList.remove("flex");
+        editBackdrop.classList.add("hidden");
+      };
+
+      const validateEdit = () => {
+        const ok = deptSelect.value && startInput.value;
+        saveEdit.disabled = !ok;
+      };
+
+      const saveEditHandler = () => {
+        const dept = deptSelect.value.trim();
+        const start = startInput.value || null;
+        const end = endInput.value || null;
+        const note = noteInput.value.trim();
+
+        if (!dept || !start) return;
+
+        if (!editingId) {
+          const id = "m" + Math.random().toString(16).slice(2, 8);
+          memberships.unshift({ id, dept, start, end, note });
+          expanded.add(id);
+          showToast("Added");
+        } else {
+          const idx = memberships.findIndex((x) => x.id === editingId);
+          memberships[idx] = { ...memberships[idx], dept, start, end, note };
+          showToast("Saved");
+        }
+
+        closeEdit();
+        render();
+      };
+
+      const openConfirm = ({ title, text, bodyHTML, okText, okCls, action, targetId }) => {
+        confirmAction = action;
+        confirmTargetId = targetId;
+
+        confirmTitle.textContent = title;
+        confirmText.textContent = text || "";
+        confirmBody.innerHTML = bodyHTML || "";
+        confirmOk.textContent = okText || "OK";
+
+        confirmOk.className =
+          "w-40 rounded-full px-4 py-2 text-sm font-semibold text-white hover:opacity-90 " +
+          (okCls || "bg-emerald-600");
+
+        confirmBackdrop.classList.remove("hidden");
+        confirmModal.classList.remove("hidden");
+        confirmModal.classList.add("flex");
+      };
+
+      const closeConfirm = () => {
+        confirmModal.classList.add("hidden");
+        confirmModal.classList.remove("flex");
+        confirmBackdrop.classList.add("hidden");
+        confirmAction = null;
+        confirmTargetId = null;
+      };
+
+      const confirmOkHandler = () => {
+        if (!confirmAction || !confirmTargetId) return closeConfirm();
+
+        const idx = memberships.findIndex((x) => x.id === confirmTargetId);
+        if (idx === -1) return closeConfirm();
+
+        if (confirmAction === "end") {
+          const endDate = document.getElementById("endConfirmDate")?.value || todayISO();
+          memberships[idx] = { ...memberships[idx], end: endDate };
+          expanded.delete(confirmTargetId);
+          showToast("Ended");
+        }
+
+        if (confirmAction === "delete") {
+          memberships = memberships.filter((x) => x.id !== confirmTargetId);
+          expanded.delete(confirmTargetId);
+          showToast("Deleted");
+        }
+
+        closeConfirm();
+        render();
+      };
+
+      const renderCard = (m) => {
+        const st = statusLabel(m);
+        const isExpanded = expanded.has(m.id);
+
+        const icon = "👥";
+        const meta = `
+          <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-700">
+            <div>
+              <div class="text-xs font-semibold text-slate-500">Startdatum</div>
+              <div class="mt-1 font-semibold">${fmt(m.start)}</div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-slate-500">Enddatum</div>
+              <div class="mt-1 font-semibold">${m.end ? fmt(m.end) : "Offen"}</div>
+            </div>
+          </div>
+          ${
+            m.note
+              ? `<div class="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+                   <div class="text-xs font-semibold text-slate-500">Notiz</div>
+                   <div class="mt-1">${escapeHtml(m.note)}</div>
+                 </div>`
+              : ""
+          }
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <button data-edit="${m.id}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50">
+              ✏️ Edit
+            </button>
+            <button data-more="${m.id}" class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50">
+              ⋯ More
+            </button>
+            <div class="relative hidden" data-menu="${m.id}">
+              <div class="absolute left-0 top-2 z-10 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+                <button data-end="${m.id}" class="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50">
+                  🗓️ End membership
+                </button>
+                <button data-delete="${m.id}" class="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold text-rose-700 hover:bg-rose-50">
+                  🗑️ Delete permanently
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        return `
+          <div class="rounded-2xl border border-slate-200 bg-white">
+            <button data-toggle="${m.id}" class="flex w-full items-center justify-between gap-3 px-4 py-4 text-left">
+              <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700">${icon}</div>
+                <div>
+                  <div class="font-semibold text-slate-900">${escapeHtml(m.dept)}</div>
+                  <div class="mt-1">
+                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${st.cls}">
+                      ${st.text}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-slate-400">${isExpanded ? "▴" : "▾"}</span>
+              </div>
+            </button>
+            ${
+              isExpanded
+                ? `<div class="border-t border-slate-100 px-4 py-4">${meta}</div>`
+                : ""
+            }
+          </div>
+        `;
+      };
+
+      const render = () => {
+        const activePlanned = memberships.filter((m) => statusOf(m) !== "ended");
+        const ended = memberships.filter((m) => statusOf(m) === "ended");
+
+        activeList.innerHTML = activePlanned.map(renderCard).join("");
+        endedList.innerHTML = ended.map(renderCard).join("");
+        endedCount.textContent = String(ended.length);
+
+        // close ended section if none
+        if (ended.length === 0) {
+          endedListWrap.classList.add("hidden");
+          endedChevron.textContent = "▾";
+        }
+
+        wireCardEvents();
+      };
+
+      const closeAllMenus = () => {
+        document.querySelectorAll("[data-menu]").forEach((el) => el.classList.add("hidden"));
+      };
+
+      const wireCardEvents = () => {
+        // toggle expand
+        document.querySelectorAll("[data-toggle]").forEach((btn) => {
+          btn.onclick = (e) => {
+            const id = btn.getAttribute("data-toggle");
+            if (expanded.has(id)) expanded.delete(id);
+            else expanded.add(id);
+            closeAllMenus();
+            render();
+          };
+        });
+
+        // edit
+        document.querySelectorAll("[data-edit]").forEach((btn) => {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute("data-edit");
+            closeAllMenus();
+            openEdit({ id });
+          };
+        });
+
+        // more menu toggle
+        document.querySelectorAll("[data-more]").forEach((btn) => {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute("data-more");
+            const menu = document.querySelector(`[data-menu="${id}"]`);
+            const isHidden = menu.classList.contains("hidden");
+            closeAllMenus();
+            if (isHidden) menu.classList.remove("hidden");
+            else menu.classList.add("hidden");
+          };
+        });
+
+        // end
+        document.querySelectorAll("[data-end]").forEach((btn) => {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute("data-end");
+            closeAllMenus();
+            const m = memberships.find((x) => x.id === id);
+
+            openConfirm({
+              title: "End department membership",
+              text: `This will keep the membership in history.`,
+              bodyHTML: `
+                <div class="space-y-4">
+                  <div class="rounded-2xl bg-slate-50 p-4">
+                    <div class="text-sm font-semibold text-slate-900">${escapeHtml(m.dept)}</div>
+                    <div class="mt-2 text-sm text-slate-700">
+                      Start: <span class="font-semibold">${fmt(m.start)}</span>
+                      · End: <span class="font-semibold">${m.end ? fmt(m.end) : "Offen"}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="text-sm font-semibold text-slate-900">End date</label>
+                    <input id="endConfirmDate" type="date"
+                      class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                      value="${todayISO()}" />
+                  </div>
+
+                  <div class="text-xs text-slate-500">
+                    Tip: Use <span class="font-semibold">Delete permanently</span> only for wrong/duplicate entries.
+                  </div>
+                </div>
+              `,
+              okText: "End membership",
+              okCls: "bg-emerald-600",
+              action: "end",
+              targetId: id,
+            });
+          };
+        });
+
+        // delete
+        document.querySelectorAll("[data-delete]").forEach((btn) => {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute("data-delete");
+            closeAllMenus();
+            const m = memberships.find((x) => x.id === id);
+
+            openConfirm({
+              title: "Delete permanently?",
+              text: "This cannot be undone. Use only for incorrect entries (duplicates, wrong department).",
+              bodyHTML: `
+                <div class="space-y-4">
+                  <div class="rounded-2xl bg-rose-50 p-4">
+                    <div class="text-sm font-semibold text-rose-800">${escapeHtml(m.dept)}</div>
+                    <div class="mt-2 text-sm text-rose-800">
+                      Start: <span class="font-semibold">${fmt(m.start)}</span>
+                      ${m.end ? `· End: <span class="font-semibold">${fmt(m.end)}</span>` : ""}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="text-sm font-semibold text-slate-900">Type DELETE to confirm</label>
+                    <input id="deleteConfirmInput" type="text"
+                      class="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-rose-500"
+                      placeholder="DELETE" />
+                    <div class="mt-2 text-xs text-slate-500">
+                      If you just want to stop participation, choose <span class="font-semibold">End membership</span> instead.
+                    </div>
+                  </div>
+                </div>
+              `,
+              okText: "Delete permanently",
+              okCls: "bg-rose-600",
+              action: "delete",
+              targetId: id,
+            });
+
+            // gate OK button based on input
+            setTimeout(() => {
+              const input = document.getElementById("deleteConfirmInput");
+              confirmOk.disabled = true;
+              confirmOk.classList.add("opacity-50", "cursor-not-allowed");
+              input?.addEventListener("input", () => {
+                const ok = input.value.trim().toUpperCase() === "DELETE";
+                confirmOk.disabled = !ok;
+                confirmOk.classList.toggle("opacity-50", !ok);
+                confirmOk.classList.toggle("cursor-not-allowed", !ok);
+              });
+            }, 0);
+          };
+        });
+      };
+
+      // safe HTML for note/dept
+      function escapeHtml(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      /*********************
+       * Global event wiring
+       *********************/
+      openModalBtn.onclick = openMain;
+      closeMainModal.onclick = closeMain;
+      backdrop.onclick = closeMain;
+
+      modeSelect.onchange = () => {
+        applyMode();
+        // update mobile footer
+        const mode = modeSelect.value;
+        if (mode === "wizard") {
+          mobileLeft.textContent = "Zurück";
+          mobileRight.textContent = "Weiter";
+        } else {
+          mobileLeft.textContent = "Close";
+          mobileRight.textContent = "Save";
+        }
+      };
+
+      standaloneClose.onclick = closeMain;
+      mobileLeft.onclick = () => {
+        if (modeSelect.value === "wizard") showToast("Back (demo)");
+        else closeMain();
+      };
+      mobileRight.onclick = () => {
+        if (modeSelect.value === "wizard") showToast("Next (demo)");
+        else showToast("Saved (demo)");
+      };
+
+      // ended accordion
+      toggleEnded.onclick = () => {
+        const willOpen = endedListWrap.classList.contains("hidden");
+        endedListWrap.classList.toggle("hidden", !willOpen);
+        endedChevron.textContent = willOpen ? "▴" : "▾";
+      };
+
+      // add/edit modal
+      addDeptBtn.onclick = () => openEdit({ id: null });
+      closeEditModal.onclick = closeEdit;
+      editBackdrop.onclick = closeEdit;
+      cancelEdit.onclick = closeEdit;
+
+      deptSelect.onchange = validateEdit;
+      startInput.oninput = validateEdit;
+
+      saveEdit.onclick = saveEditHandler;
+
+      // confirm modal
+      closeConfirmModal.onclick = closeConfirm;
+      confirmBackdrop.onclick = closeConfirm;
+      confirmCancel.onclick = closeConfirm;
+      confirmOk.onclick = confirmOkHandler;
+
+      // click outside menus closes menus
+      document.addEventListener("click", (e) => {
+        const insideMenu = e.target.closest("[data-menu]") || e.target.closest("[data-more]");
+        if (!insideMenu) closeAllMenus();
+      });
+
+      // init
+      applyMode();
+    </script>
+  </body>
+</html>
